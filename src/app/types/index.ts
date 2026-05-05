@@ -1,6 +1,6 @@
 export type UserRole = 
   | 'admin_it' 
-  | 'director_tecnico' 
+  | 'jefe_logistica' 
   | 'operario_deposito' 
   | 'auditor';
 
@@ -10,21 +10,72 @@ export interface User {
   role: UserRole;
 }
 
+// === Monitoreo Térmico ===
+
+export interface SensorReading {
+  id: string;
+  label: string;
+  temperature: number;
+  status: 'normal' | 'warning' | 'faulty';
+}
+
+export interface StorageUnit {
+  id: string;
+  name: string;
+  sensors: SensorReading[];
+  averageTemp: number;
+  minTemp: number;
+  maxTemp: number;
+  status: 'normal' | 'warning' | 'critical';
+  aiAlert?: string;
+  sensorAlert?: string;
+}
+
 export interface TemperatureReading {
   timestamp: string;
   temperature: number;
   location: string;
 }
 
-export interface StorageUnit {
-  id: string;
-  name: string;
-  currentTemp: number;
-  minTemp: number;
-  maxTemp: number;
-  status: 'normal' | 'warning' | 'critical';
-  aiAlert?: string;
+export type GeneratorState = 'standby' | 'active' | 'testing' | 'offline';
+
+export interface GeneratorStatus {
+  state: GeneratorState;
+  lastTest: string;
+  fuelLevel: number; // porcentaje 0-100
+  runtime: string; // horas de funcionamiento acumuladas
 }
+
+export interface StorageEvent {
+  id: string;
+  unitId: string;
+  timestamp: string;
+  type: 'temp_alert' | 'maintenance' | 'power' | 'sensor_change' | 'inspection';
+  description: string;
+  severity: 'info' | 'warning' | 'critical';
+}
+
+export interface MaintenanceRequest {
+  id: string;
+  unitId: string;
+  unitName: string;
+  requestedBy: string;
+  requestedAt: string;
+  type: 'preventivo' | 'correctivo' | 'emergencia';
+  reason: string;
+  priority: 'alta' | 'media' | 'baja';
+  status: 'pendiente' | 'en_progreso' | 'resuelto';
+  resolvedAt?: string;
+}
+
+export interface OutOfRangeRecord {
+  unitId: string;
+  totalMinutes: number;
+  incidents: number;
+  lastIncident: string;
+}
+
+// === Inventario ===
 
 export interface InventoryItem {
   id: string;
@@ -43,12 +94,30 @@ export interface InventoryItem {
   };
 }
 
+export interface OperationLog {
+  id: string;
+  timestamp: string;
+  user: string;
+  role: UserRole;
+  action: 'ingreso' | 'egreso' | 'modificacion' | 'ajuste';
+  itemCode: string;
+  itemName: string;
+  quantity: number;
+  previousStock: number;
+  newStock: number;
+  reason: string;
+}
+
+// === Notificaciones ===
+
 export interface Notification {
   id: string;
   timestamp: string;
   message: string;
   type: 'info' | 'warning' | 'critical';
 }
+
+// === Tendencias ===
 
 export interface PurchaseSuggestion {
   id: string;
@@ -58,6 +127,8 @@ export interface PurchaseSuggestion {
   prioridad: 'alta' | 'media' | 'baja';
   fechaEstimada: string;
 }
+
+// === Documentación ===
 
 export interface Document {
   id: string;

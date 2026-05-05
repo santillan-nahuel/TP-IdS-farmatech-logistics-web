@@ -10,12 +10,8 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  // Usuario por defecto para pruebas - En producción vendría de un login
-  const [user, setUser] = useState<User | null>({
-    id: '1',
-    name: 'Usuario Demo',
-    role: 'director_tecnico'
-  });
+  // Sin usuario autenticado por defecto — se asigna desde la pantalla de Login
+  const [user, setUser] = useState<User | null>(null);
 
   const hasPermission = (allowedRoles: UserRole[]): boolean => {
     if (!user) return false;

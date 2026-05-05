@@ -10,7 +10,7 @@ import {
 
 const roleOptions: { value: UserRole; label: string }[] = [
   { value: 'admin_it', label: 'Administrador IT' },
-  { value: 'director_tecnico', label: 'Director Técnico' },
+  { value: 'jefe_logistica', label: 'Jefe de Logística' },
   { value: 'operario_deposito', label: 'Operario de Depósito' },
   { value: 'auditor', label: 'Auditor' },
 ];

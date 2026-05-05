@@ -1,4 +1,4 @@
-import { Link, Outlet, useLocation } from 'react-router';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router';
 import { useAuth } from '../context/AuthContext';
 import { 
   Thermometer, 
@@ -20,11 +20,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
-import { RoleSwitcher } from './RoleSwitcher';
 
 const roleNames = {
   admin_it: 'Administrador IT',
-  director_tecnico: 'Director Técnico',
+  jefe_logistica: 'Jefe de Logística',
   operario_deposito: 'Operario de Depósito',
   auditor: 'Auditor'
 };
@@ -32,32 +31,38 @@ const roleNames = {
 export function Layout() {
   const { user, setUser } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const handleLogout = () => {
+    setUser(null);
+    navigate('/login');
+  };
 
   const navigation = [
     {
       name: 'Monitoreo Térmico',
       href: '/',
       icon: Thermometer,
-      roles: ['admin_it', 'director_tecnico', 'operario_deposito', 'auditor']
+      roles: ['admin_it', 'jefe_logistica', 'operario_deposito', 'auditor']
     },
     {
       name: 'Tendencias e IA',
       href: '/tendencias',
       icon: TrendingUp,
-      roles: ['admin_it', 'director_tecnico']
+      roles: ['admin_it', 'jefe_logistica']
     },
     {
       name: 'Gestión de Stock',
       href: '/stock',
       icon: Package,
-      roles: ['admin_it', 'director_tecnico', 'operario_deposito', 'auditor']
+      roles: ['admin_it', 'jefe_logistica', 'operario_deposito', 'auditor']
     },
     {
       name: 'Documentación',
       href: '/documentacion',
       icon: FileText,
-      roles: ['admin_it', 'director_tecnico', 'operario_deposito', 'auditor']
+      roles: ['admin_it', 'jefe_logistica', 'operario_deposito', 'auditor']
     }
   ];
 
@@ -78,10 +83,13 @@ export function Layout() {
             className={`
               flex items-center gap-3 px-3 py-2 rounded-lg transition-colors
               ${isActive 
-                ? 'bg-blue-600 text-white' 
+                ? 'text-white' 
                 : 'text-gray-700 hover:bg-gray-100'
               }
             `}
+            style={isActive ? {
+              background: 'linear-gradient(135deg, #0d3b4f 0%, #0a6e6e 50%, #14a3a3 100%)',
+            } : undefined}
           >
             <Icon className="size-5" />
             <span className="font-medium">{item.name}</span>
@@ -104,25 +112,37 @@ export function Layout() {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-64 p-4">
-                <div className="mb-6">
-                  <h2 className="text-xl font-bold text-blue-600">FarmaControl</h2>
-                  <p className="text-sm text-gray-500">Sistema de Gestión Inteligente</p>
+                <div className="mb-6 flex items-center gap-3">
+                  <img src="/assets/logo.png" alt="FarmaTech" className="w-10 h-10 object-contain" />
+                  <div>
+                    <h2 className="text-xl font-bold" style={{ color: '#0a6e6e' }}>FarmaTech</h2>
+                    <p className="text-xs text-gray-500">Sistema de Gestión Inteligente</p>
+                  </div>
                 </div>
                 <NavigationContent />
               </SheetContent>
             </Sheet>
             
-            <div>
-              <h1 className="text-xl font-bold text-blue-600">FarmaControl</h1>
-              <p className="text-xs text-gray-500 hidden sm:block">Sistema de Gestión Inteligente</p>
+            <div className="flex items-center gap-3">
+              <img src="/assets/logo.png" alt="FarmaTech" className="w-9 h-9 object-contain hidden sm:block" />
+              <div>
+                <h1 className="text-xl font-bold" style={{ color: '#0a6e6e' }}>FarmaTech</h1>
+                <p className="text-xs text-gray-500 hidden sm:block">Sistema de Gestión Inteligente</p>
+              </div>
             </div>
           </div>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2">
-                <User className="size-4" />
-                <span className="hidden sm:inline">{user?.name}</span>
+                <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                  style={{
+                    background: 'linear-gradient(135deg, #0d3b4f, #14a3a3)',
+                  }}
+                >
+                  {user?.name?.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                </div>
+                <span className="hidden sm:inline text-sm">{user?.name}</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
@@ -135,7 +155,7 @@ export function Layout() {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setUser(null)} className="text-red-600">
+              <DropdownMenuItem onClick={handleLogout} className="text-red-600">
                 <LogOut className="size-4 mr-2" />
                 Cerrar Sesión
               </DropdownMenuItem>
@@ -157,9 +177,6 @@ export function Layout() {
           <Outlet />
         </main>
       </div>
-
-      {/* Role Switcher for Demo */}
-      <RoleSwitcher />
     </div>
   );
 }

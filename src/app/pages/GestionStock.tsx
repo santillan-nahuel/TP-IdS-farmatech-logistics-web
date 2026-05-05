@@ -13,9 +13,13 @@ import {
   MapPin,
   Calendar,
   FileText,
-  X
+  History,
+  ArrowDownCircle,
+  ArrowUpCircle,
+  Edit,
+  ShieldCheck
 } from 'lucide-react';
-import { inventoryItems } from '../data/mockData';
+import { inventoryItems, operationLogs } from '../data/mockData';
 import { useAuth } from '../context/AuthContext';
 import {
   Sheet,
@@ -39,17 +43,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 
 export function GestionStock() {
-  const { hasPermission } = useAuth();
+  const { hasPermission, user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [selectedItem, setSelectedItem] = useState<typeof inventoryItems[0] | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const canModifyStock = hasPermission(['director_tecnico', 'operario_deposito', 'admin_it']);
-  const canAudit = hasPermission(['director_tecnico', 'admin_it']);
-  const isReadOnly = hasPermission(['auditor']);
+  // Permisos granulares
+  const canIngressEgress = hasPermission(['jefe_logistica', 'operario_deposito', 'admin_it']);
+  const canModifyStock = hasPermission(['jefe_logistica', 'admin_it', 'operario_deposito']);
+  const canViewHistory = hasPermission(['jefe_logistica', 'admin_it', 'auditor', 'operario_deposito']);
+  const canScanQR = hasPermission(['jefe_logistica', 'operario_deposito', 'admin_it']);
+  const isReadOnly = hasPermission(['auditor']) && !hasPermission(['admin_it']);
 
   const filteredItems = inventoryItems.filter(item => {
     const matchesSearch = 
@@ -77,10 +85,42 @@ export function GestionStock() {
     return { color: 'text-green-600', label: 'NORMAL' };
   };
 
+  const getActionIcon = (action: string) => {
+    switch (action) {
+      case 'ingreso': return <ArrowDownCircle className="size-4 text-green-600" />;
+      case 'egreso': return <ArrowUpCircle className="size-4 text-red-600" />;
+      case 'modificacion': return <Edit className="size-4 text-blue-600" />;
+      case 'ajuste': return <ShieldCheck className="size-4 text-yellow-600" />;
+      default: return null;
+    }
+  };
+
+  const getActionLabel = (action: string) => {
+    switch (action) {
+      case 'ingreso': return 'Ingreso';
+      case 'egreso': return 'Egreso';
+      case 'modificacion': return 'Modificación';
+      case 'ajuste': return 'Ajuste';
+      default: return action;
+    }
+  };
+
   const handleViewDetails = (item: typeof inventoryItems[0]) => {
     setSelectedItem(item);
     setDrawerOpen(true);
   };
+
+  // Filtrar logs: operario solo ve sus propias operaciones
+  const filteredLogs = selectedItem 
+    ? operationLogs.filter(log => {
+        const matchesItem = log.itemCode === selectedItem.code;
+        if (hasPermission(['admin_it']) || hasPermission(['jefe_logistica']) || hasPermission(['auditor'])) {
+          return matchesItem;
+        }
+        // Operario solo ve sus operaciones
+        return matchesItem && log.user === user?.name;
+      })
+    : [];
 
   return (
     <div className="space-y-6">
@@ -89,13 +129,25 @@ export function GestionStock() {
           <h1 className="text-3xl font-bold">Consulta y Gestión de Stock</h1>
           <p className="text-gray-500 mt-1">Control de Inventario en Tiempo Real</p>
         </div>
-        {canModifyStock && (
-          <Button className="bg-green-600 hover:bg-green-700">
-            <Plus className="size-4 mr-2" />
-            Nuevo Ingreso
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {canIngressEgress && (
+            <Button className="bg-green-600 hover:bg-green-700">
+              <Plus className="size-4 mr-2" />
+              Nuevo Ingreso
+            </Button>
+          )}
+        </div>
       </div>
+
+      {/* Banner de solo lectura para auditor */}
+      {isReadOnly && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-center gap-2">
+          <ShieldCheck className="size-5 text-amber-600 flex-shrink-0" />
+          <p className="text-sm text-amber-700">
+            <strong>Modo Auditoría</strong> — Acceso de solo lectura. Puedes consultar inventario, fichas técnicas e historial de movimientos.
+          </p>
+        </div>
+      )}
 
       {/* Barra de Herramientas */}
       <Card>
@@ -124,10 +176,12 @@ export function GestionStock() {
               </SelectContent>
             </Select>
 
-            <Button variant="outline">
-              <QrCode className="size-4 mr-2" />
-              Escanear Código
-            </Button>
+            {canScanQR && (
+              <Button variant="outline">
+                <QrCode className="size-4 mr-2" />
+                Escanear Código
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -204,7 +258,7 @@ export function GestionStock() {
         </CardContent>
       </Card>
 
-      {/* Panel Lateral (Drawer) - Ficha Técnica */}
+      {/* Panel Lateral (Drawer) - Ficha Técnica + Log */}
       <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
         <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
           {selectedItem && (
@@ -223,14 +277,26 @@ export function GestionStock() {
                 </div>
               </SheetHeader>
 
-              <div className="mt-6 space-y-6">
-                {/* Información General */}
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-lg flex items-center gap-2">
-                    <Package className="size-5" />
-                    Información General
-                  </h3>
-                  
+              <Tabs defaultValue="info" className="mt-6">
+                <TabsList className="w-full">
+                  <TabsTrigger value="info" className="flex-1">
+                    <Package className="size-4 mr-1" />
+                    Info
+                  </TabsTrigger>
+                  <TabsTrigger value="ficha" className="flex-1">
+                    <FileText className="size-4 mr-1" />
+                    Ficha Técnica
+                  </TabsTrigger>
+                  {canViewHistory && (
+                    <TabsTrigger value="log" className="flex-1">
+                      <History className="size-4 mr-1" />
+                      Log
+                    </TabsTrigger>
+                  )}
+                </TabsList>
+
+                {/* Tab: Información General */}
+                <TabsContent value="info" className="space-y-4 mt-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
                       <p className="text-sm text-gray-500">Stock Actual</p>
@@ -257,23 +323,44 @@ export function GestionStock() {
                     </p>
                     <p className="font-medium">{selectedItem.vencimiento}</p>
                   </div>
-                </div>
 
-                {/* Ficha Técnica */}
-                {selectedItem.fichaTexnica && (
-                  <div className="space-y-4 border-t pt-6">
-                    <h3 className="font-semibold text-lg flex items-center gap-2">
-                      <FileText className="size-5" />
-                      Ficha Técnica
-                    </h3>
+                  {/* Acciones */}
+                  {canIngressEgress && !isReadOnly && (
+                    <div className="border-t pt-4 space-y-2">
+                      <Button className="w-full" variant="default">
+                        <ArrowUpCircle className="size-4 mr-2" />
+                        Registrar Salida
+                      </Button>
+                      {canModifyStock && (
+                        <Button className="w-full" variant="outline">
+                          <Edit className="size-4 mr-2" />
+                          Modificar Stock
+                        </Button>
+                      )}
+                    </div>
+                  )}
 
+                  {isReadOnly && (
+                    <div className="border-t pt-4">
+                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                        <p className="text-sm text-amber-700">
+                          🔒 Acceso de solo lectura — No puedes modificar el inventario
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </TabsContent>
+
+                {/* Tab: Ficha Técnica */}
+                <TabsContent value="ficha" className="space-y-4 mt-4">
+                  {selectedItem.fichaTexnica ? (
                     <div className="space-y-4">
                       <div>
                         <p className="text-sm font-medium text-gray-700 mb-2">Materiales del Envase</p>
                         <ul className="space-y-1">
                           {selectedItem.fichaTexnica.materiales.map((material, idx) => (
                             <li key={idx} className="text-sm text-gray-600 flex items-start gap-2">
-                              <span className="text-blue-600">•</span>
+                              <span className="text-teal-600">•</span>
                               {material}
                             </li>
                           ))}
@@ -295,36 +382,45 @@ export function GestionStock() {
                         <p className="text-sm text-yellow-700">{selectedItem.fichaTexnica.instruccionesManejo}</p>
                       </div>
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    <p className="text-sm text-gray-400 text-center py-8">Sin ficha técnica disponible</p>
+                  )}
+                </TabsContent>
 
-                {/* Acciones */}
-                {canModifyStock && !isReadOnly && (
-                  <div className="border-t pt-6 space-y-3">
-                    <Button className="w-full" variant="default">
-                      Registrar Salida
-                    </Button>
-                    <Button className="w-full" variant="outline">
-                      Modificar Stock
-                    </Button>
-                    {canAudit && (
-                      <Button className="w-full" variant="outline">
-                        Ver Historial de Movimientos
-                      </Button>
-                    )}
-                  </div>
-                )}
-
-                {isReadOnly && (
-                  <div className="border-t pt-6">
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                      <p className="text-sm text-blue-700">
-                        ℹ️ Acceso de solo lectura - No puedes modificar el inventario
-                      </p>
+                {/* Tab: Log de Operaciones */}
+                {canViewHistory && (
+                  <TabsContent value="log" className="space-y-4 mt-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium text-gray-700">Historial de Movimientos</p>
+                      {hasPermission(['operario_deposito']) && !hasPermission(['admin_it']) && (
+                        <Badge variant="outline" className="text-xs">Solo tus operaciones</Badge>
+                      )}
                     </div>
-                  </div>
+                    {filteredLogs.length > 0 ? (
+                      <div className="space-y-3">
+                        {filteredLogs.map((log) => (
+                          <div key={log.id} className="border rounded-lg p-3 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                {getActionIcon(log.action)}
+                                <span className="text-sm font-semibold">{getActionLabel(log.action)}</span>
+                              </div>
+                              <span className="text-xs text-gray-500">{log.timestamp}</span>
+                            </div>
+                            <div className="text-sm text-gray-600">
+                              <p><strong>Usuario:</strong> {log.user} <span className="text-xs text-gray-400">({log.role})</span></p>
+                              <p><strong>Cantidad:</strong> {log.quantity > 0 ? '+' : ''}{log.quantity} → Stock: {log.previousStock} → {log.newStock}</p>
+                              <p><strong>Razón:</strong> {log.reason}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-400 text-center py-8">Sin movimientos registrados para este producto</p>
+                    )}
+                  </TabsContent>
                 )}
-              </div>
+              </Tabs>
             </>
           )}
         </SheetContent>

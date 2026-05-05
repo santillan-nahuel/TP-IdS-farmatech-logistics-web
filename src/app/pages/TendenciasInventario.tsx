@@ -9,7 +9,7 @@ import { Button } from '../components/ui/button';
 export function TendenciasInventario() {
   const { hasPermission } = useAuth();
 
-  const canApproveOrders = hasPermission(['director_tecnico']);
+  const canApproveOrders = hasPermission(['jefe_logistica', 'admin_it']);
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -188,7 +188,7 @@ export function TendenciasInventario() {
         <Card className="bg-green-50 border-green-200">
           <CardContent className="pt-6">
             <p className="text-sm text-green-700">
-              ✓ Tienes permisos de <strong>Director Técnico</strong> - Puedes aprobar órdenes de compra y gestionar algoritmos de IA
+              ✓ Puedes aprobar órdenes de compra y gestionar algoritmos de IA
             </p>
           </CardContent>
         </Card>
@@ -196,7 +196,7 @@ export function TendenciasInventario() {
         <Card className="bg-purple-50 border-purple-200">
           <CardContent className="pt-6">
             <p className="text-sm text-purple-700">
-              ℹ️ Panel de análisis confidencial - Solo accesible para Directores Técnicos y Administradores IT
+              ℹ️ Panel de análisis confidencial - Solo accesible para Jefes de Logística y Administradores IT
             </p>
           </CardContent>
         </Card>

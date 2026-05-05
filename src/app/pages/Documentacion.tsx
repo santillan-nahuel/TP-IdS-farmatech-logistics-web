@@ -33,8 +33,8 @@ export function Documentacion() {
   const [selectedDocument, setSelectedDocument] = useState(documents[0]);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const canUpload = hasPermission(['operario_deposito', 'admin_it', 'director_tecnico']);
-  const canApprove = hasPermission(['director_tecnico', 'admin_it']);
+  const canUpload = hasPermission(['operario_deposito', 'admin_it', 'jefe_logistica']);
+  const canApprove = hasPermission(['jefe_logistica', 'admin_it']);
   const isAuditor = hasPermission(['auditor']);
 
   const handleDrag = (e: React.DragEvent) => {
@@ -161,9 +161,10 @@ export function Documentacion() {
                 </div>
 
                 {isAuditor && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                    <p className="text-sm text-blue-700">
-                      ℹ️ Como auditor, tienes acceso de búsqueda especializada para rastrear trazabilidad
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-center gap-2">
+                    <span className="text-amber-600 font-bold text-lg">🔒</span>
+                    <p className="text-sm text-amber-700">
+                      <strong>Modo Auditoría</strong> — Acceso de solo lectura. Puedes consultar documentos y rastrear trazabilidad de lotes.
                     </p>
                   </div>
                 )}
@@ -362,7 +363,7 @@ export function Documentacion() {
           <p className="text-sm">
             {canApprove && (
               <span className="text-green-700">
-                ✓ <strong>Director Técnico</strong> - Puedes revisar extracciones de IA y aprobar documentos
+                ✓ <strong>Jefe de Logística</strong> - Puedes revisar extracciones de IA y aprobar documentos
               </span>
             )}
             {canUpload && !canApprove && (
