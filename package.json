@@ -1,11 +1,13 @@
 {
-  "name": "@figma/my-make-file",
+  "name": "farmatech-logistics-web",
   "private": true,
-  "version": "0.0.1",
+  "version": "1.0.0",
+  "description": "Sistema de Gestión Logística Farmacéutica - Prototipo de Alta Fidelidad",
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "dev": "vite"
+    "dev": "vite",
+    "preview": "vite preview"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",
